@@ -1,6 +1,34 @@
-class Customer {}
+class Customer {
+    constructor(id, name, email) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+    }
 
-class Reservation {}
+    get info(){
+        return `Cliente: ${this.name}<br>Email: ${this.email}`;
+    }
+}
+
+class Reservation {
+    constructor(id, customer, date, guests) {
+        this.id = id;
+        this.customer = customer;
+        this.date = new Date(date);
+        this.guests = guests;
+    }
+
+    get info() {
+        return `${this.customer.info}<br>Fecha de la Reserva: ${this.date.toLocaleString()}<br>Comensales: ${this.guests}`;
+    }
+
+    static validateReservation(date, guests) {
+        const reservationDate = new Date(date);
+        return reservationDate >= new Date() && guests > 0;
+
+    }
+}
+
 
 class Restaurant {
     constructor(name) {
@@ -31,7 +59,7 @@ class Restaurant {
                             </p>
                         </div>
                     </div>
-              `;
+            `;
             container.appendChild(reservationCard);
         });
     }

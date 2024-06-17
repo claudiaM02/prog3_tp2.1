@@ -1,4 +1,31 @@
-class Sensor {}
+class Sensor {
+    constructor(id, name, type, value, unit, updated_at){
+        this.id = id;
+        this.name = name;
+        this.type = type;
+        this.value = value;
+        this.unit = unit;
+        this.updated_at = updated_at;
+
+        this.wType();
+    }
+
+    set updateValue(value) {
+        this.value = value;
+        this.updated_at = new Date().toString();
+    }
+
+    wType() {
+        const validTypes = ['temperature', 'humidity', 'pressure'];
+    
+        if (validTypes.includes(this.type)) {
+            return this.type;
+        } else {
+            this.type = 'Error';
+            return this.type;
+        }
+    }
+}
 
 class SensorManager {
     constructor() {
@@ -33,7 +60,14 @@ class SensorManager {
         }
     }
 
-    async loadSensors(url) {}
+    async loadSensors(url) {
+        const response = await fetch(url);
+        const sensors = await response.json();
+        sensors.forEach((sensor) => {
+            this.addSensor(new Sensor(sensor.id, sensor.name, sensor.type, sensor.value, sensor.unit, sensor.updated_at));
+        });
+        this.render();
+    }
 
     render() {
         const container = document.getElementById("sensor-container");

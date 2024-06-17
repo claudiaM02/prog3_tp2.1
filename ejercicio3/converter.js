@@ -6,12 +6,78 @@ class Currency {
 }
 
 class CurrencyConverter {
-    constructor() {}
+    constructor(apiUrl) {
+        this.apiUrl = apiUrl;
+        this.currencies = [];
+    }
 
-    getCurrencies(apiUrl) {}
+    async getCurrencies() {
+        try {
+            const response = await fetch(`${this.apiUrl}/currencies`);
+            const data = await response.json();
+            Object.keys(data).forEach((key) => {
+                const currency = new Currency(key, data[key]);
+                this.currencies.push(currency);
+            });
+        } catch (error) {
+            console.error('Al obtener las monedas hubo un error:', error);
+        }
+    }
 
-    convertCurrency(amount, fromCurrency, toCurrency) {}
+    async convertCurrency(amount, fromCurrency, toCurrency) {
+        if (fromCurrency.code === toCurrency.code) {
+            return amount;
+        }
+        
+        try {
+            const response = await fetch(`${this.apiUrl}/latest?amount=${amount}&from=${fromCurrency.code}&to=${toCurrency.code}`);
+            const data = await response.json();
+            return data.rates[toCurrency.code] * amount;
+        } catch (error) {
+            console.error('Al convertir moneda hubo un error:', error);
+            return null;
+        }
+    }
+
+    async getExchange(date) {
+        try {
+            const response = await fetch(`${this.apiUrl}/${date}`);
+            const data = await response.json();
+            return data.rates;
+        } catch (error) {
+            console.error(`Al obtener tasas de cambio para la fecha hubo un error ${date}:`, error);
+            return null;
+        }
+    }
+
+    async compareExchangeRates(toCurrencyCode) {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+
+        const formattedYesterday = yesterday.toISOString().split('T')[0];
+        const urlToday = `${this.apiUrl}/latest`;
+        const urlYesterday = `${this.apiUrl}/${formattedYesterday}`;
+
+        try {
+            const responseToday = await fetch(urlToday);
+            const dataToday = await responseToday.json();
+
+            const responseYesterday = await fetch(urlYesterday);
+            const dataYesterday = await responseYesterday.json();
+
+            const rateToday = dataToday.rates[toCurrencyCode];
+            const rateYesterday = dataYesterday.rates[toCurrencyCode];
+            const difference = rateToday - rateYesterday;
+
+            return { rateToday, rateYesterday, difference };
+        } catch (error) {
+            console.error('Al comparar tasas de cambio hubo un error:', error);
+            return null;
+        }
+    }
 }
+   
 
 document.addEventListener("DOMContentLoaded", async () => {
     const form = document.getElementById("conversion-form");
@@ -43,13 +109,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         );
 
         if (convertedAmount !== null && !isNaN(convertedAmount)) {
-            resultDiv.textContent = `${amount} ${
-                fromCurrency.code
-            } son ${convertedAmount.toFixed(2)} ${toCurrency.code}`;
+            const { rateToday, rateYesterday, difference } = await converter.compareExchangeRates(toCurrency.code);
+            resultDiv.innerHTML = `
+                ${amount} ${fromCurrency.code} son ${convertedAmount.toFixed(2)} ${toCurrency.code}<br>
+                La tasa de cambio en el día de hoy es: ${rateToday}<br>
+                La tasa de cambio en el día de ayer fue: ${rateYesterday}<br>
+                La diferencia corresponde a: ${difference}
+            `;
         } else {
-            resultDiv.textContent = "Error al realizar la conversión.";
+            resultDiv.textContent = "Al realizar la conversión hubo un error.";
         }
     });
+        
 
     function populateCurrencies(selectElement, currencies) {
         if (currencies) {
